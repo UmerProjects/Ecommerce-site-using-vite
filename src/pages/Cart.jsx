@@ -7,8 +7,8 @@ import { useState } from 'react'
 
 export default function Cart() {
   const { items, removeItem, clear } = useCartStore()
-  const { success, error } = useToast()
-  const [isUpdating, setIsUpdating] = useState(false)
+  const { success } = useToast()
+  const [isUpdating] = useState(false)
 
   const updateQuantity = (productId, variantId, newQuantity) => {
     if (newQuantity <= 0) {
