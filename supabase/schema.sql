@@ -24,12 +24,33 @@ for each row execute function public.handle_updated_at();
 -- Products
 create table if not exists public.products (
   id uuid primary key default uuid_generate_v4(),
+  -- Basic identity
   title text not null,
   slug text unique not null,
   description text,
-  price_cents integer not null check (price_cents >= 0),
-  currency text not null default 'USD',
-  image_url text,
+
+  -- Pricing
+  price_cents integer not null check (price_cents >= 0), -- base price
+  sale_price_cents integer check (sale_price_cents >= 0),
+
+  -- Catalog & merchandising
+  sku text unique,
+  brand text,
+  is_active boolean not null default true,
+  is_featured boolean not null default false,
+
+  -- Inventory
+  stock_quantity integer not null default 0 check (stock_quantity >= 0),
+
+  -- Media
+  image_url text,              -- primary image (legacy)
+  image_urls text[] not null default array[]::text[], -- gallery (up to 5 recommended)
+
+  -- Metadata
+  tags text[] not null default array[]::text[],
+  weight numeric,              -- for shipping calculations
+  dimensions jsonb,            -- { length, width, height }
+
   created_at timestamp with time zone default now(),
   updated_at timestamp with time zone default now()
 );
@@ -80,6 +101,15 @@ before update on public.cart_items
 for each row execute function public.handle_updated_at();
 
 create index if not exists cart_items_user_idx on public.cart_items(user_id);
+
+-- Stock notifications: capture emails to notify when a product is back in stock
+create table if not exists public.stock_notifications (
+  id uuid primary key default uuid_generate_v4(),
+  product_id uuid references public.products(id) on delete cascade,
+  email text not null,
+  created_at timestamp with time zone default now(),
+  notified_at timestamp with time zone
+);
 
 -- RLS policies
 alter table public.profiles enable row level security;
